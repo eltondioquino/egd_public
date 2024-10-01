@@ -6,14 +6,6 @@
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
 
 \f0\fs24 \cf0 /*=========================================\
-NOTE: This approach is created for MS SQL scripts\
-\
-Created via text editor using MacOS and save as \
-Reach Text Document so it may include some characters\
-Or font settings. Please ignore if those character may appear.\
-=========================================*/\
-\
-/*=========================================\
 Question 1 - Database Design\
 =========================================*/\
 \
@@ -58,10 +50,12 @@ VALUES (1, 'Zapper Merchant', 'A merchant on the Zapper platform', '123 Main St'
 INSERT INTO CustomerTransactions (TransactionID, CustomerID, MerchantID, Amount, Status)\
 VALUES (1, 1, 1, 10.99, 'Success');\
 \
-----drop table \
---DROP TABLE Customers;\
---DROP TABLE Merchants;\
---DROP TABLE CustomerTransactions;\
+\
+/* ----drop table \
+	DROP TABLE Customers;\
+	DROP TABLE Merchants;\
+	DROP TABLE CustomerTransactions;\
+*/\
 \
 --select all data\
 SELECT * FROM Customers;\
@@ -74,7 +68,7 @@ Question 2 - User Settings\
 =========================================*/\
 \
 -- create user profile table\
-CREATE TABLE UserProfile (\
+CREATE TABLE user_profile (\
 	User_Id INT PRIMARY KEY,\
 	SMS_Notifications_Enabled BIT NOT NULL DEFAULT 0,\
 	Push_Notifications_Enabled BIT NOT NULL DEFAULT 0,\
@@ -172,4 +166,60 @@ SELECT @features_settings;\
 ----test case: 1 using actual user id #13\
 SELECT dbo.has_feature_enabled(@features_settings, 4);  -- Output: True\
 \
+\
+\
+/*=========================================\
+NOTE: I created a table for feature settings\
+As a reference to get the feature description\
+=========================================*/\
+\
+CREATE TABLE UserFeatures (\
+    Feature_Id INT PRIMARY KEY,\
+    Description NVARCHAR(50) NOT NULL,\
+    IsEnabled BIT NOT NULL DEFAULT 0,\
+  	IsActive BIT NOT NULL DEFAULT 1,\
+    CreatedDate DATETIME NOT NULL,\
+    ModifiedDate DATETIME NULL,\
+    CreatedBy NVARCHAR(50) NULL,\
+    ModifiedBy NVARCHAR(50) NULL\
+);\
+\
+INSERT INTO UserFeatures (Feature_Id, CreatedDate, Description)\
+VALUES \
+	(1, GETDATE(), 'SMS Notifications Enabled'),\
+	(2, GETDATE(), 'Push Notifications Enabled'),\
+	(3, GETDATE(), 'Bio-metrics Enabled'),\
+	(4, GETDATE(), 'Camera Enabled'),\
+	(5, GETDATE(), 'Location Enabled'),\
+	(6, GETDATE(), 'NFC Enabled'),\
+	(7, GETDATE(), 'Vouchers Enabled'),\
+	(8, GETDATE(), 'Loyalty Enabled');\
+\
+-- get all the user features\
+SELECT * FROM UserFeatures;\
+\
+-- create a funtion to get the feature description\
+CREATE FUNCTION GetFeatureDescription (@FeatureId INT)\
+RETURNS NVARCHAR(50)\
+AS\
+BEGIN\
+    DECLARE @Description NVARCHAR(50)\
+\
+    SELECT @Description = uf.Description\
+    FROM UserFeatures uf\
+    WHERE uf.Feature_Id = @FeatureId\
+\
+    RETURN @Description\
+END\
+\
+\
+--test case: 1\
+DECLARE @featureId INT = 7;\
+DECLARE @features_settings_char NVARCHAR(8) = '00000000';\
+\
+--SELECT dbo.has_feature_enabled(@features_settings_char, @featureId);\
+--SELECT dbo.GetFeatureDescription(@featureId);\
+\
+---- using the functions to get the feature description\
+SELECT dbo.has_feature_enabled(@features_settings_char, @featureId), dbo.GetFeatureDescription(@featureId);\
 }
