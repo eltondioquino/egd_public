@@ -1,0 +1,176 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2761
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 /*=========================================\
+NOTE: This approach is created for MS SQL scripts\
+\
+Created via text editor using MacOS and save as \
+Reach Text Document so it may include some characters\
+Or font settings. Please ignore if those character may appear.\
+=========================================*/\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+/*=========================================\
+Question 1 - Database Design\
+=========================================*/\
+\
+--create customer table\
+CREATE TABLE Customers (\
+	CustomerID INT PRIMARY KEY,\
+	FirstName VARCHAR(50) NOT NULL,\
+	LastName VARCHAR(50) NOT NULL,\
+	Email VARCHAR(100) NOT NULL,\
+	PhoneNumber VARCHAR(20) NOT NULL\
+);\
+\
+--create merchant table\
+CREATE TABLE Merchants (\
+	MerchantID INT PRIMARY KEY,\
+	Name VARCHAR(100) NOT NULL,\
+	Description VARCHAR(200) NOT NULL,\
+	Address VARCHAR(200) NOT NULL\
+);\
+\
+--create customer transactions table\
+CREATE TABLE CustomerTransactions (\
+	TransactionID INT PRIMARY KEY,\
+	CustomerID INT NOT NULL,\
+	MerchantID INT NOT NULL,\
+	TransactionDate DATETIME NULL,\
+	Amount DECIMAL(10, 2) NOT NULL,\
+ 	Status VARCHAR(20) NOT NULL DEFAULT 'Pending',\
+	FOREIGN KEY (CustomerID) REFERENCES Customers(CustomerID),\
+	FOREIGN KEY (MerchantID) REFERENCES Merchants(MerchantID)\
+);\
+\
+--insert sample data to customer table\
+INSERT INTO Customers (CustomerID, FirstName, LastName, Email, PhoneNumber)\
+VALUES (1, 'John', 'Doe', 'johndoe@example.com', '1234567890');\
+\
+--insert sample data to merchant table\
+INSERT INTO Merchants (MerchantID, Name, Description, Address)\
+VALUES (1, 'Zapper Merchant', 'A merchant on the Zapper platform', '123 Main St');\
+\
+--insert sample data to customer transactions table\
+INSERT INTO CustomerTransactions (TransactionID, CustomerID, MerchantID, Amount, Status)\
+VALUES (1, 1, 1, 10.99, 'Success');\
+\
+----drop table \
+--DROP TABLE Customers;\
+--DROP TABLE Merchants;\
+--DROP TABLE CustomerTransactions;\
+\
+--select all data\
+SELECT * FROM Customers;\
+SELECT * FROM Merchants;\
+SELECT * FROM CustomerTransactions;\
+\
+\
+/*=========================================\
+Question 2 - User Settings\
+=========================================*/\
+\
+-- create user profile table\
+CREATE TABLE user_profile (\
+	User_Id INT PRIMARY KEY,\
+	SMS_Notifications_Enabled BIT NOT NULL DEFAULT 0,\
+	Push_Notifications_Enabled BIT NOT NULL DEFAULT 0,\
+	Bio_metrics_Enabled BIT NOT NULL DEFAULT 0,\
+	Camera_Enabled BIT NOT NULL DEFAULT 0,\
+	Location_Enabled BIT NOT NULL DEFAULT 0,\
+	NFC_Enabled BIT NOT NULL DEFAULT 0,\
+	Vouchers_Enabled BIT NOT NULL DEFAULT 0,\
+	Loyalty_Enabled BIT NOT NULL DEFAULT 0\
+);\
+\
+\
+/*=========================================\
+Question 2.1 Checking if a feature is enabled\
+=========================================*/\
+\
+--create a function to check for user settings\
+CREATE FUNCTION has_feature_enabled(@settings VARCHAR(8), @setting INT)\
+RETURNS BIT\
+AS\
+BEGIN\
+\
+    DECLARE @feature INT;\
+    SET @feature = SUBSTRING(@settings, @setting, 1);\
+    RETURN CONVERT(BIT, @feature);\
+    \
+END;\
+\
+--test case: 1\
+SELECT dbo.has_feature_enabled('00000000', 7);  -- Output: False\
+--test case: 2\
+SELECT dbo.has_feature_enabled('00000010', 7);  -- Output: True\
+--test case: 3\
+SELECT dbo.has_feature_enabled('11111111', 4);  -- Output: True\
+\
+/*=========================================\
+Question 2.2 Storing user settings\
+=========================================*/\
+INSERT INTO UserProfile (\
+  	User_Id, \
+    SMS_Notifications_Enabled, \
+    Push_Notifications_Enabled, \
+ 	Bio_metrics_Enabled, \
+ 	Camera_Enabled, \
+ 	Location_Enabled, \
+	NFC_Enabled, \
+	Vouchers_Enabled, \
+	Loyalty_Enabled)\
+VALUES\
+	(1, 1, 1, 0, 1, 1, 0, 1, 0),\
+	(2, 0, 1, 1, 0, 0, 1, 0, 1),\
+	(3, 1, 0, 0, 1, 1, 0, 0, 0),\
+	(4, 0, 0, 1, 0, 0, 1, 1, 1),\
+	(5, 1, 1, 1, 1, 1, 1, 1, 1),\
+	(6, 0, 0, 0, 0, 0, 0, 0, 0),\
+	(7, 1, 1, 0, 1, 0, 1, 1, 0),\
+	(8, 0, 1, 1, 0, 1, 0, 0, 1),\
+	(9, 1, 0, 0, 1, 0, 1, 1, 0),\
+	(10, 0, 0, 1, 0, 1, 1, 0, 0),\
+    (11, 0, 0, 0, 0, 0, 0, 0, 0), -- test case:1\
+    (12, 0, 0, 0, 0, 0, 0, 1, 0), -- test case:2\
+    (13, 1, 1, 1, 1, 1, 1, 1, 1); -- test case:3\
+\
+--select all user profile\
+SELECT * FROM UserProfile;\
+\
+--select user id 11, 12, 13\
+SELECT * FROM UserProfile where User_Id IN (11, 12, 13) \
+\
+--change the user id parameter value  \
+DECLARE @userid INT = 13; -- 11, 12, 13 test cases used\
+\
+DECLARE @features_settings VARCHAR(8)\
+SET @features_settings = \
+	(SELECT \
+        CONVERT(VARCHAR(1),SMS_Notifications_Enabled) +\
+        CONVERT(VARCHAR(1),Push_Notifications_Enabled) +\
+        CONVERT(VARCHAR(1),Bio_metrics_Enabled) +\
+        CONVERT(VARCHAR(1),Camera_Enabled) +\
+        CONVERT(VARCHAR(1),Location_Enabled) + \
+        CONVERT(VARCHAR(1),NFC_Enabled) +\
+        CONVERT(VARCHAR(1),Vouchers_Enabled) + \
+        CONVERT(VARCHAR(1),Loyalty_Enabled) \
+    FROM UserProfile where User_Id = @userid); \
+\
+\
+SELECT @features_settings;\
+\
+--test case: 1 using actual user id #11\
+--SELECT dbo.has_feature_enabled(@features_settings, 7);  -- Output: False\
+\
+----test case: 1 using actual user id #12\
+--SELECT dbo.has_feature_enabled(@features_settings, 7);  -- Output: True\
+\
+----test case: 1 using actual user id #13\
+SELECT dbo.has_feature_enabled(@features_settings, 4);  -- Output: True\
+\
+}
